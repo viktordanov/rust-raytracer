@@ -3,11 +3,10 @@ mod pixel;
 mod png;
 
 use glam::Vec3;
+use math::object::{HitRecord, Hittable, World};
 use math::ray::Ray;
 use math::sphere::Sphere;
-use math::object::{Hittable, HitRecord};
-use pixel::{Pixel, Persistable};
-
+use pixel::{Persistable, Pixel};
 
 fn color(ray: &Ray) -> Vec3 {
     let unit_direction = ray.direction.normalize();
@@ -27,8 +26,9 @@ fn main() {
 
     let mut image = vec![Pixel::new(0, 0, 0); width * height];
 
-    let binding = Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5);
-    let objects: Vec<&dyn Hittable> = vec![&binding];
+    let sphere = Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5);
+    let sphere_big = Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0);
+    let world = World::new(vec![&sphere, &sphere_big]);
 
     for j in (0..height).rev() {
         for i in 0..width {
@@ -37,20 +37,24 @@ fn main() {
             let r = Ray::new(origin, lower_left_corner + horizontal * u + vertical * v);
 
             let mut color = color(&r);
-            for obj in objects.iter() {
-                if let Some(rec) = obj.hit(&r, 0.0, std::f32::MAX) {
-                    color = 0.5 * (rec.normal + Vec3::new(1.0, 1.0, 1.0));
-                }
+            if let Some(rec) = world.hit(&r, 0.0, std::f32::MAX) {
+                color = 0.5 * (rec.normal + Vec3::new(1.0, 1.0, 1.0));
             }
 
             let ir = (255.99 * color.x) as i32;
             let ig = (255.99 * color.y) as i32;
             let ib = (255.99 * color.z) as i32;
-        
-            let index = (j * width + i) as usize;
+
+            let index = ((height-1-j) * width + i) as usize;
             image[index].set(ir as u8, ig as u8, ib as u8);
         }
     }
 
-    image.save("image.png", width.try_into().unwrap(), height.try_into().unwrap()).unwrap();
+    image
+        .save(
+            "image.png",
+            width.try_into().unwrap(),
+            height.try_into().unwrap(),
+        )
+        .unwrap();
 }
