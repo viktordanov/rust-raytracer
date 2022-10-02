@@ -15,13 +15,13 @@ This repository contains a simple raytracer written in Rust. It is based on the 
 - [ ] Load render settings from file
 - [ ] Support OBJ loading for meshes
 - [ ] Support textures
-- [ ] Support multiple materials
-   - [ ] Diffuse
-   - [ ] Metal
+- [x] Support multiple materials
+   - [x] Diffuse
+   - [x] Metal
    - [ ] Dielectric
 - [ ] Support multiple lights
 - [ ] Support multiple cameras
-- [ ] Support multiple objects
+- [x] Support multiple objects
 - [ ] BVH acceleration
 - [ ] Multithreading
 - [ ] Hamiltonian geodesic path tracing 
