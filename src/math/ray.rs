@@ -20,4 +20,19 @@ impl Ray {
             self.direction - *normal * 2.0 * self.direction.dot(*normal),
         )
     }
+
+    pub fn refract(&self, normal: &Vec3, ni_over_nt: f32) -> Option<Ray> {
+        let uv = self.direction.normalize();
+        let n = normal.normalize();
+        let dt = uv.dot(n);
+        let discriminant = 1.0 - ni_over_nt * ni_over_nt * (1.0 - dt * dt);
+        if discriminant > 0.0 {
+            Some(Ray::new(
+                self.origin,
+                ni_over_nt * (uv - n * dt) - n * discriminant.sqrt(),
+            ))
+        } else {
+            None
+        }
+    }
 }
