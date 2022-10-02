@@ -18,8 +18,8 @@ fn color(ray: &Ray) -> Vec3 {
 }
 
 fn main() {
-    let width = 200;
-    let height = 100;
+    let width = 600;
+    let height = 300;
     let lower_left_corner = Vec3::new(-2.0, -1.0, -1.0);
     let horizontal = Vec3::new(4.0, 0.0, 0.0);
     let vertical = Vec3::new(0.0, 2.0, 0.0);
