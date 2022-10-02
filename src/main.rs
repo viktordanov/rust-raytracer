@@ -3,20 +3,13 @@ mod pixel;
 mod png;
 
 use glam::Vec3;
-use math::camera::{Camera};
-use math::object::{HitRecord, Hittable, World};
-use math::ray::Ray;
+use math::camera::Camera;
+use math::object::{World};
 use math::sphere::Sphere;
 use pixel::{Persistable, Pixel};
 use rand::prelude::*;
 
-fn color(ray: &Ray) -> Vec3 {
-    let unit_direction = ray.direction.normalize();
-    let t = 0.5 * (unit_direction.y + 1.0);
-    let white = Vec3::new(1.0, 1.0, 1.0);
-    let blue = Vec3::new(0.5, 0.7, 1.0);
-    white * (1.0 - t) + blue * t
-}
+use crate::math::object::{Lambertian, Dielectric, Metal};
 
 fn main() {
     let width = 600;
@@ -31,9 +24,17 @@ fn main() {
 
     let mut image = vec![Pixel::new(0, 0, 0); width * height];
 
-    let sphere = Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5);
-    let sphere_big = Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0);
-    let world = World::new(vec![&sphere, &sphere_big]);
+    let lambertian_sphere = Lambertian::new(Vec3::new(0.8, 0.3, 0.3));
+    let lambertian_sphere_big = Lambertian::new(Vec3::new(0.8, 0.8, 0.0));
+    let metal_sphere = Metal::new(Vec3::new(0.8, 0.8, 0.8), 0.0);
+    let dielectric_sphere = Dielectric::new(1.5);
+
+    let sphere = Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5, &lambertian_sphere);
+    let sphere_big = Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0, &lambertian_sphere_big);
+    let sphere_metal = Sphere::new(Vec3::new(1.0, 0.0, -1.0), 0.5, &metal_sphere);
+    let sphere_metal_2 = Sphere::new(Vec3::new(-1.0, 0.0, -1.0), 0.45, &dielectric_sphere);
+
+    let world = World::new(vec![&sphere, &sphere_big, &sphere_metal, &sphere_metal, &sphere_metal_2]);
 
     const ANTIALIASING_FACTOR: u32 = 100;
     let mut rng = thread_rng();
@@ -47,11 +48,8 @@ fn main() {
                 let u = i / width as f32;
                 let v = j / height as f32;
                 let r = camera.cast_ray(u, v);
-                let mut color = color(&r);
 
-                if let Some(rec) = world.hit(&r, 0.0, std::f32::MAX) {
-                    color = 0.5 * (rec.normal + Vec3::new(1.0, 1.0, 1.0));
-                }
+                let color = world.color_at(&r, 0);
                 cumulative_color += color;
             }
 
