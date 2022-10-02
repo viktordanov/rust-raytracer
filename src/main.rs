@@ -3,10 +3,12 @@ mod pixel;
 mod png;
 
 use glam::Vec3;
+use math::camera::{Camera};
 use math::object::{HitRecord, Hittable, World};
 use math::ray::Ray;
 use math::sphere::Sphere;
 use pixel::{Persistable, Pixel};
+use rand::prelude::*;
 
 fn color(ray: &Ray) -> Vec3 {
     let unit_direction = ray.direction.normalize();
@@ -19,10 +21,13 @@ fn color(ray: &Ray) -> Vec3 {
 fn main() {
     let width = 600;
     let height = 300;
-    let lower_left_corner = Vec3::new(-2.0, -1.0, -1.0);
-    let horizontal = Vec3::new(4.0, 0.0, 0.0);
-    let vertical = Vec3::new(0.0, 2.0, 0.0);
-    let origin = Vec3::new(0.0, 0.0, 0.0);
+
+    let camera = Camera::new(
+        Vec3::new(-2.0, -1.0, -1.0),
+        Vec3::new(4.0, 0.0, 0.0),
+        Vec3::new(0.0, 2.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+    );
 
     let mut image = vec![Pixel::new(0, 0, 0); width * height];
 
@@ -30,22 +35,33 @@ fn main() {
     let sphere_big = Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0);
     let world = World::new(vec![&sphere, &sphere_big]);
 
+    const ANTIALIASING_FACTOR: u32 = 100;
+    let mut rng = thread_rng();
+
     for j in (0..height).rev() {
         for i in 0..width {
-            let u = i as f32 / width as f32;
-            let v = j as f32 / height as f32;
-            let r = Ray::new(origin, lower_left_corner + horizontal * u + vertical * v);
+            let mut cumulative_color: Vec3 = Vec3::ZERO;
+            for _ in 0..ANTIALIASING_FACTOR {
+                let i: f32 = i as f32 + rng.gen::<f32>() - 0.5;
+                let j: f32 = j as f32 + rng.gen::<f32>() - 0.5;
+                let u = i / width as f32;
+                let v = j / height as f32;
+                let r = camera.cast_ray(u, v);
+                let mut color = color(&r);
 
-            let mut color = color(&r);
-            if let Some(rec) = world.hit(&r, 0.0, std::f32::MAX) {
-                color = 0.5 * (rec.normal + Vec3::new(1.0, 1.0, 1.0));
+                if let Some(rec) = world.hit(&r, 0.0, std::f32::MAX) {
+                    color = 0.5 * (rec.normal + Vec3::new(1.0, 1.0, 1.0));
+                }
+                cumulative_color += color;
             }
 
-            let ir = (255.99 * color.x) as i32;
-            let ig = (255.99 * color.y) as i32;
-            let ib = (255.99 * color.z) as i32;
+            cumulative_color /= ANTIALIASING_FACTOR as f32;
 
-            let index = ((height-1-j) * width + i) as usize;
+            let ir = (255.99 * cumulative_color.x) as i32;
+            let ig = (255.99 * cumulative_color.y) as i32;
+            let ib = (255.99 * cumulative_color.z) as i32;
+
+            let index = (height - 1 - j as usize) * width + i as usize;
             image[index].set(ir as u8, ig as u8, ib as u8);
         }
     }
